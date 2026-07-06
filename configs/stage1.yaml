@@ -18,9 +18,8 @@ paths:
 
   labels_csv: /kaggle/input/datasets/pjjoseph3000/etdd70/dyslexia_class_label.csv
 
-  rois_zip: /kaggle/input/datasets/pjjoseph3000/etdd70/rois/rois
-
-  stimuli_zip: /kaggle/input/datasets/pjjoseph3000/etdd70/stimuli/images
+  rois_zip: /kaggle/working/rois.zip
+  stimuli_zip: /kaggle/working/stimuli.zip
 
   outputs_dir: outputs
   features_dir: outputs/features
