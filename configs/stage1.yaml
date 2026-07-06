@@ -1,0 +1,203 @@
+# =============================================================================
+# Eco-Dysformer v2 -- Stage 1 configuration (SINGLE SOURCE OF TRUTH)
+#
+# Everything that controls a run lives here: paths, the verified dataset schema,
+# feature options, model hyperparameters, the evaluation protocol, and the global
+# seed. Code should read from this file, never hardcode a path or hyperparameter.
+#
+# NOTE ON SCOPE: This is Stage 1 (CORE only). Stage-2 keys (handwriting branch,
+# naive-vs-honest fusion / RQ3, OOD cohorts) are intentionally absent.
+# =============================================================================
+
+seed: 1337
+
+paths:
+  dataset_root: /kaggle/input/datasets/pjjoseph3000/etdd70
+
+  data_dir: /kaggle/input/datasets/pjjoseph3000/etdd70/data/data
+
+  labels_csv: /kaggle/input/datasets/pjjoseph3000/etdd70/dyslexia_class_label.csv
+
+  rois_zip: /kaggle/input/datasets/pjjoseph3000/etdd70/rois/rois
+
+  stimuli_zip: /kaggle/input/datasets/pjjoseph3000/etdd70/stimuli/images
+
+  outputs_dir: outputs
+  features_dir: outputs/features
+  results_dir: outputs/results
+  figures_dir: outputs/figures
+
+# -----------------------------------------------------------------------------
+# Dataset schema -- VERIFIED by inspecting the real files on 2026-07-02, and
+# re-asserted at load time (see src/eco_dysformer/data/). If any assert fires,
+# the on-disk structure has drifted from what is encoded here -- fix here, do
+# not silently coerce.
+# -----------------------------------------------------------------------------
+dataset:
+  n_subjects_expected: 70
+  n_per_class_expected: 35          # 35 dyslexic / 35 non-dyslexic
+  file_types: [raw, fixations, saccades, metrics]
+  label_column: class_id            # 0 = non-dyslexic, 1 = dyslexic
+  label_map:
+    0: non-dyslexic
+    1: dyslexic
+  # Three passages per child, ordered by the syllable -> narrative -> pseudo-text
+  # linguistic-complexity gradient (this ordering is the RQ2 axis).
+  passages:
+    - task: T1_Syllables
+      name: syllables
+      stim: s7_stimuli_t1.jpg
+      roi:  Syllables_rois.csv
+      complexity_rank: 0
+    - task: T4_Meaningful_Text
+      name: meaningful
+      stim: s7_stimuli_t4.jpg
+      roi:  Meaningful_Text_rois.csv
+      complexity_rank: 1
+    - task: T5_Pseudo_Text
+      name: pseudo
+      stim: s7_stimuli_t5.jpg
+      roi:  Pseudo_Text_rois.csv
+      complexity_rank: 2
+
+# -----------------------------------------------------------------------------
+# Feature engineering
+# -----------------------------------------------------------------------------
+features:
+  gaze:
+    # 'recompute'  -> compute all features from *_fixations/*_saccades event files
+    # 'metrics'    -> read the dataset-provided *_metrics.csv trial aggregates
+    # 'recompute_crosscheck' -> recompute AND compare against metrics.csv (default)
+    source: recompute_crosscheck
+    crosscheck_tolerance: 0.02      # relative tolerance for the cross-check report
+    min_fixation_ms: 40             # dataset uses I2MC w/ 40 ms min fixation
+
+  linguistic:
+    # Passage-level features. NOTE: because ETDD70 has only 3 distinct stimuli,
+    # these take exactly 3 values (one per passage), identical across children.
+    # Their role is the RQ2 conditioning signal, not per-child discrimination.
+    engine: udpipe                  # udpipe | stanza
+    udpipe_model: czech-pdt-ud-2.5-191206.udpipe
+    stanza_lang: cs
+    zipf_lang: cs                   # wordfreq Zipf table
+    # Supplementary neural embedding -- OFF by default (Stretch, priority 3).
+    use_embedding: false
+    embedding_model: xlm-roberta-base   # or ufal/robeczech-base if verified
+    embedding_pooling: mean
+
+# -----------------------------------------------------------------------------
+# Model (RQ2 core + RQ1 comparison arm)
+# -----------------------------------------------------------------------------
+model:
+  gaze_encoder:
+    # 'features' -> encode the short engineered per-passage feature vector (core
+    #               classification path).
+    # 'events'   -> encode the raw fixation/saccade event stream (hundreds of
+    #               events); used by the RQ1 sequence-length crossover experiment.
+    input_mode: features
+    d_model: 64
+    n_heads: 4
+    n_layers: 2
+    dropout: 0.1
+    attention: performer            # performer | quadratic  (RQ1 switch)
+    performer_features: 64          # FAVOR+ random-feature dim
+    max_events: 512                 # pad/truncate raw event stream to this length
+
+  linguistic_encoder:
+    d_model: 64
+    n_layers: 1
+    dropout: 0.1
+
+  fusion:
+    type: paired_cross_attention    # cross-attn over the child's 3 passage tokens
+    d_model: 64
+    n_heads: 4
+    dropout: 0.1
+
+  head:
+    classifier: lightgbm            # primary downstream classifier
+    aux_head: mlp                   # trains the neural encoders end-to-end (BCE)
+    aux_epochs: 60
+    aux_lr: 0.001
+    aux_weight_decay: 0.0001
+
+  # Parameter-matching between the Performer and quadratic arms is enforced in
+  # code (assert on param count); both share every dim above except `attention`.
+  param_match_tolerance: 0.02
+
+  lightgbm:
+    n_estimators: 300
+    learning_rate: 0.05
+    num_leaves: 15
+    max_depth: 4
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_lambda: 1.0
+    min_child_samples: 5
+    # random_state is set from the global seed in code.
+
+# -----------------------------------------------------------------------------
+# Training-time augmentation (applied ONLY within a fold's training partition)
+# -----------------------------------------------------------------------------
+train:
+  augmentation:
+    enabled: true
+    jitter_std: 0.01
+    time_warp: true
+    segment_permutation: false
+  device: auto                      # auto | cpu | cuda
+
+# -----------------------------------------------------------------------------
+# Evaluation protocol
+# -----------------------------------------------------------------------------
+eval:
+  cv:
+    outer_folds: 5                  # outer loop = performance estimate
+    inner_folds: 3                  # inner loop = hyperparameter selection
+    stratified: true                # stratify folds by class while grouping by subject
+    group_key: subject_id           # a child's 3 passages NEVER split across folds
+  bootstrap:
+    n_resamples: 2000
+    ci: 0.95
+  wilcoxon:
+    alternative: two-sided          # paired Wilcoxon signed-rank across outer folds
+  arms:
+    - performer_vs_quadratic        # RQ1
+    - conditioned_vs_blind          # RQ2
+  operational:
+    measure_gpu: true
+    latency_batches: 50
+
+# RQ1 sequence-length crossover: where (if anywhere) linear attention overtakes
+# quadratic on the RAW event stream. An honest negative on short seqs is expected.
+rq1_crossover:
+  seq_lengths: [3, 8, 16, 32, 64, 128, 256, 512]
+  repeats: 20
+
+# -----------------------------------------------------------------------------
+# Explainability -- on ORIGINAL interpretable features, NEVER on PCA components.
+# -----------------------------------------------------------------------------
+explain:
+  method: lime
+  lime_samples: 1000
+  on_features: original             # hard requirement; asserted in code
+  stability_across_folds: true
+
+# -----------------------------------------------------------------------------
+# Published ETDD70 baselines for the comparison table. These use DIFFERENT
+# validation protocols and are APPROXIMATE cross-paper numbers -- the table
+# marks them as such and keeps a separate column for our own protocol.
+# -----------------------------------------------------------------------------
+baselines_published:
+  - name: "ETDD70 dataset paper (Sedmidubsky et al., 2024)"
+    accuracy: 0.90
+    note: "approximate; different validation protocol"
+  - name: "SwinV2 + SGA"
+    accuracy: 0.9245
+    note: "approximate; different validation protocol"
+  - name: "INSIGHT"
+    accuracy: 0.8665
+    note: "approximate; different validation protocol"
+  - name: "CatBoost / XGBoost"
+    accuracy: 0.82
+    note: "approximate range 0.80-0.83; different validation protocol"

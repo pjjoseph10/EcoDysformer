@@ -1,0 +1,33 @@
+{
+  "seed": 1337,
+  "local_mode": true,
+  "stages": {
+    "inspect": {
+      "status": "ok",
+      "n_subjects": 70
+    },
+    "features": {
+      "status": "ok",
+      "gaze_rows": 210,
+      "linguistic": "skipped"
+    },
+    "rq2_effects": {
+      "status": "ok"
+    },
+    "model": {
+      "status": "skipped",
+      "reason": "needs torch+lightgbm (Kaggle)"
+    },
+    "crossover": {
+      "status": "skipped",
+      "reason": "needs torch (Kaggle)"
+    },
+    "explain": {
+      "status": "skipped",
+      "reason": "needs trained pipeline (Kaggle)"
+    },
+    "baselines": {
+      "status": "ok"
+    }
+  }
+}

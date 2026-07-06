@@ -1,0 +1,6 @@
+system,accuracy,accuracy_ci,validation,note
+"ETDD70 dataset paper (Sedmidubsky et al., 2024)",0.9,,cross-paper (protocol differs),approximate; different validation protocol
+SwinV2 + SGA,0.9245,,cross-paper (protocol differs),approximate; different validation protocol
+INSIGHT,0.8665,,cross-paper (protocol differs),approximate; different validation protocol
+CatBoost / XGBoost,0.82,,cross-paper (protocol differs),approximate range 0.80-0.83; different validation protocol
+This work — (Performer / quadratic / blind),pending,,subject-level nested CV (this protocol),run run_stage1 on Kaggle to populate
