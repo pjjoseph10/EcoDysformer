@@ -75,8 +75,7 @@ features:
     # Passage-level features. NOTE: because ETDD70 has only 3 distinct stimuli,
     # these take exactly 3 values (one per passage), identical across children.
     # Their role is the RQ2 conditioning signal, not per-child discrimination.
-    engine: udpipe                  # udpipe | stanza
-    udpipe_model: czech-pdt-ud-2.5-191206.udpipe
+    engine: stanza
     stanza_lang: cs
     zipf_lang: cs                   # wordfreq Zipf table
     # Supplementary neural embedding -- OFF by default (Stretch, priority 3).
