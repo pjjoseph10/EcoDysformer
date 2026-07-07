@@ -12,6 +12,27 @@ import numpy as np
 from scipy import stats as sp_stats
 
 
+def benjamini_hochberg(pvalues) -> np.ndarray:
+    """Benjamini-Hochberg FDR-adjusted q-values for a list of p-values.
+
+    NaN p-values pass through as NaN and are excluded from the ranking.
+    """
+    p = np.asarray(pvalues, dtype=float)
+    q = np.full_like(p, np.nan)
+    ok = ~np.isnan(p)
+    m = int(ok.sum())
+    if m == 0:
+        return q
+    idx = np.where(ok)[0]
+    order = idx[np.argsort(p[idx])]
+    ranked = p[order]
+    adj = ranked * m / (np.arange(1, m + 1))
+    # enforce monotonicity (step-up)
+    adj = np.minimum.accumulate(adj[::-1])[::-1]
+    q[order] = np.clip(adj, 0.0, 1.0)
+    return q
+
+
 def cohens_d(x, y, *, paired: bool = False) -> float:
     """Cohen's d effect size for the difference in means of ``x`` vs ``y``.
 

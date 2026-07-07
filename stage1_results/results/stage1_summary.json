@@ -1,0 +1,40 @@
+{
+  "seed": 1337,
+  "local_mode": false,
+  "stages": {
+    "inspect": {
+      "status": "ok",
+      "n_subjects": 70
+    },
+    "features": {
+      "status": "ok",
+      "gaze_rows": 210,
+      "linguistic": "built"
+    },
+    "rq2_effects": {
+      "status": "ok"
+    },
+    "model": {
+      "status": "ok",
+      "performer_acc": 0.8291666666666666
+    },
+    "crossover": {
+      "status": "ok",
+      "crossover_seq_len": 2048
+    },
+    "explain": {
+      "status": "ok",
+      "top_features": [
+        "syllables__median_fix_dur",
+        "syllables__mean_sacc_dur",
+        "pseudo__median_fix_dur",
+        "syllables__mean_fix_disp",
+        "pseudo__return_sweep_count"
+      ],
+      "mean_jaccard": 0.26640211640211636
+    },
+    "baselines": {
+      "status": "ok"
+    }
+  }
+}

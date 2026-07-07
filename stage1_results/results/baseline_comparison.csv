@@ -1,0 +1,8 @@
+system,accuracy,accuracy_ci,validation,note
+"ETDD70 dataset paper (Sedmidubsky et al., 2024)",0.9,,cross-paper (protocol differs),approximate; different validation protocol
+SwinV2 + SGA,0.9245,,cross-paper (protocol differs),approximate; different validation protocol
+INSIGHT,0.8665,,cross-paper (protocol differs),approximate; different validation protocol
+CatBoost / XGBoost,0.82,,cross-paper (protocol differs),approximate range 0.80-0.83; different validation protocol
+This work — performer_conditioned,0.8292,"[0.754, 0.896]",subject-level nested CV (this protocol),our protocol; directly comparable across our own arms
+This work — quadratic_conditioned,0.8208,"[0.742, 0.900]",subject-level nested CV (this protocol),our protocol; directly comparable across our own arms
+This work — performer_blind,0.8333,"[0.742, 0.917]",subject-level nested CV (this protocol),our protocol; directly comparable across our own arms

@@ -7,6 +7,19 @@ linguistic-complexity signals across the syllable → narrative → pseudo-text
 gradient. **This is an offline methodological study; it is NOT a clinical or
 diagnostic system and must not be used as one.**
 
+## Headline Stage-1 findings (subject-level 10-fold nested CV)
+Full, auto-generated numbers in `outputs/results/RESULTS.md`. In brief:
+- **RQ1:** Performer *matches* the parameter-matched quadratic baseline on
+  accuracy (no significant difference); linear attention overtakes quadratic in
+  time and memory only past a sequence-length crossover (~N=2048, above ETDD70's
+  ~130–350 events/passage). Honest, nuanced efficiency result.
+- **RQ2:** complexity-conditioning does **not** improve classification over a
+  gaze-only baseline (honest null — linguistic features are passage constants).
+  The positive RQ2 evidence is *descriptive*: a significant group×complexity
+  interaction (FDR-corrected) in reading-effort gaze measures.
+- **RQ4:** top LIME attributions are all oculomotor and biomarker-plausible;
+  attribution ranking is broadly stable across folds, the exact top-5 set less so.
+
 ## Architecture
 Per child = one example = a length-3 sequence of passage tokens (ordered by
 complexity).

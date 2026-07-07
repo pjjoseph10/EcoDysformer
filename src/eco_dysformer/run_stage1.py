@@ -161,7 +161,22 @@ def main() -> int:
 
 
 def _finish(cfg, summary: dict) -> int:
-    _banner("8/8 summary")
+    # Figures + paper-ready RESULTS.md, regenerated from the written artifacts
+    # (best-effort: missing artifacts degrade to 'pending', never crash the run).
+    _banner("figures + RESULTS.md")
+    try:
+        from eco_dysformer.eval.figures import make_all_figures
+        from eco_dysformer.eval.results_report import save as save_results_md
+        figs = make_all_figures(cfg)
+        md = save_results_md(cfg)
+        summary["stages"]["report"] = {"status": "ok", "results_md": str(md),
+                                       "figures": figs}
+        print(f"[stage:report] ok -> {md}")
+    except Exception as e:  # pragma: no cover
+        summary["stages"]["report"] = {"status": "error", "error": str(e)}
+        print(f"[stage:report] error: {e}")
+
+    _banner("summary")
     out = Path(cfg.paths.results_dir) / "stage1_summary.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:

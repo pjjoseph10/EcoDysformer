@@ -69,7 +69,7 @@ def _select_num_leaves(arrays, fold, arm_kw, cfg, device, seed) -> int:
 
 def run_arm(name: str, arrays: ChildArrays, folds, cfg, device, seed) -> dict:
     arm_kw = ARMS[name]
-    per_fold, selected, epoch_times = [], [], []
+    per_fold, selected, epoch_times, oof = [], [], [], []
     for fold in folds:
         nl = _select_num_leaves(arrays, fold, arm_kw, cfg, device, seed)
         selected.append(nl)
@@ -86,6 +86,12 @@ def run_arm(name: str, arrays: ChildArrays, folds, cfg, device, seed) -> dict:
         m["num_leaves"] = nl
         per_fold.append(m)
 
+        # Out-of-fold predictions (each child predicted exactly once, on the fold
+        # where it is held out) -- feeds the calibration reliability diagram.
+        for s, yt, yp in zip(arrays.subjects[fold.test_idx], y_te, proba):
+            oof.append({"arm": name, "outer_fold": fold.index,
+                        "subject_id": int(s), "y_true": int(yt), "y_prob": float(yp)})
+
     df = pd.DataFrame(per_fold)
     def summ(col):
         return bootstrap_ci(df[col].to_numpy(), n_resamples=cfg.eval.bootstrap.n_resamples,
@@ -93,6 +99,7 @@ def run_arm(name: str, arrays: ChildArrays, folds, cfg, device, seed) -> dict:
     return {
         "name": name,
         "per_fold": per_fold,
+        "oof": oof,
         "accuracy_mean": float(df["accuracy"].mean()),
         "accuracy_ci": {k: summ("accuracy")[k] for k in ("lo", "hi")},
         "f1_mean": float(df["f1"].mean()),
@@ -191,6 +198,14 @@ def run_nested_cv(cfg, arrays_conditioned: ChildArrays,
 def save_results(cfg, results: dict) -> dict:
     res_dir = Path(cfg.paths.results_dir)
     res_dir.mkdir(parents=True, exist_ok=True)
+
+    # Pull the bulky out-of-fold predictions out of the JSON into their own CSV.
+    oof_rows = []
+    for arm, r in results["arms"].items():
+        oof_rows.extend(r.pop("oof", []))
+    if oof_rows:
+        pd.DataFrame(oof_rows).to_csv(res_dir / "cv_oof_predictions.csv", index=False)
+
     with open(res_dir / "cv_results.json", "w", encoding="utf-8") as fh:
         json.dump(results, fh, indent=2, ensure_ascii=False)
 
@@ -200,4 +215,5 @@ def save_results(cfg, results: dict) -> dict:
             rows.append({"arm": arm, **f})
     pd.DataFrame(rows).to_csv(res_dir / "cv_per_fold.csv", index=False)
     return {"json": str(res_dir / "cv_results.json"),
-            "csv": str(res_dir / "cv_per_fold.csv")}
+            "csv": str(res_dir / "cv_per_fold.csv"),
+            "oof_csv": str(res_dir / "cv_oof_predictions.csv")}
