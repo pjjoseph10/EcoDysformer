@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Generated Stage-1 artifacts (reproducible from run_stage1)
+outputs/
+
+# Model / NLP downloads
+*.udpipe
+models_cache/
+
+# Large dataset payloads (attach ETDD70 externally / on Kaggle).
+# The small label CSV and README are kept; the bulk data and zips are ignored.
+dataset/ETDD70/data/
+dataset/ETDD70/*.zip
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+.claude/
