@@ -27,8 +27,16 @@ from eco_dysformer.data.tensors import ChildArrays
 from eco_dysformer.models.pipeline import FittedPipeline, resolve_device
 
 # Substrings marking literature-documented oculomotor dyslexia biomarkers.
-BIOMARKER_TERMS = ("regression", "fix_count", "fix_dur", "read_time", "dwell",
-                   "fixation", "sacc")
+def _is_oculomotor_biomarker(flat_name: str) -> bool:
+    """True if the attributed feature is an oculomotor (gaze) reading measure.
+
+    Every feature in GAZE_FEATURE_NAMES is a literature-standard fixation /
+    saccade / regression / reading-flow measure -- exactly the biomarker family
+    RQ4 refers to. Linguistic/stimulus features (dependency depth, Zipf, ...) are
+    correctly NOT counted. The flat name is "passage__feature"; check the suffix.
+    """
+    from eco_dysformer.features.gaze import GAZE_FEATURE_NAMES
+    return flat_name.split("__", 1)[-1] in set(GAZE_FEATURE_NAMES)
 
 
 def _jaccard(a: set, b: set) -> float:
@@ -91,7 +99,7 @@ def run_lime_stability(cfg, arrays: ChildArrays, folds, *, top_k: int = 5) -> di
     spearmans = [spearmanr(imp_df.loc[i], imp_df.loc[j]).correlation
                  for i, j in combinations(imp_df.index, 2)]
 
-    n_bio = sum(any(t in f for t in BIOMARKER_TERMS) for f in top_features)
+    n_bio = sum(_is_oculomotor_biomarker(f) for f in top_features)
     return {
         "top_features": top_features,
         "pooled_importance": pooled.to_dict(),

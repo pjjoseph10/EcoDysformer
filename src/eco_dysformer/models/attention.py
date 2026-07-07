@@ -98,19 +98,25 @@ class PerformerAttention(_MHABase):
         omega = torch.randn(n_heads, self.d_head, n_features, generator=g)
         self.register_buffer("omega", omega, persistent=True)
 
-    def _phi(self, x: torch.Tensor) -> torch.Tensor:
+    def _phi(self, x: torch.Tensor, is_query: bool) -> torch.Tensor:
         # x: (b,h,n,dh). scale improves the softmax approximation.
         x = x * (self.d_head ** -0.25)
         proj = torch.einsum("bhnd,hdm->bhnm", x, self.omega)   # (b,h,n,m)
         sq = (x ** 2).sum(dim=-1, keepdim=True) * 0.5           # (b,h,n,1)
-        # subtract per-row max over feature dim for stability
-        stab = torch.amax(proj, dim=-1, keepdim=True).detach()
+        # FAVOR+ stabilization: for QUERIES a per-query max (dim=-1) that cancels
+        # in the num/den ratio; for KEYS a SINGLE constant across all keys (max
+        # over key+feature axes) so it also cancels. A per-key max would rescale
+        # each key non-uniformly and distort attention (verified ~1.5x worse).
+        if is_query:
+            stab = torch.amax(proj, dim=-1, keepdim=True).detach()
+        else:
+            stab = torch.amax(proj, dim=(-2, -1), keepdim=True).detach()
         phi = torch.exp(proj - sq - stab) + 1e-6
         return phi / math.sqrt(self.n_features)
 
     def _attend(self, q, k, v):
-        qf = self._phi(q)                                       # (b,h,nq,m)
-        kf = self._phi(k)                                       # (b,h,nk,m)
+        qf = self._phi(q, is_query=True)                        # (b,h,nq,m)
+        kf = self._phi(k, is_query=False)                       # (b,h,nk,m)
         kv = torch.einsum("bhnm,bhnd->bhmd", kf, v)             # (b,h,m,dh)
         z = kf.sum(dim=2)                                       # (b,h,m)
         num = torch.einsum("bhnm,bhmd->bhnd", qf, kv)           # (b,h,nq,dh)

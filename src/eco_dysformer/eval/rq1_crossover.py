@@ -25,24 +25,32 @@ from eco_dysformer.models.blocks import SelfAttentionBlock
 
 
 def _time_block(block, x, repeats: int, device) -> float:
+    """Mean ms/forward, or NaN if the block OOMs (quadratic can, at large N)."""
     block.eval().to(device)
     x = x.to(device)
     is_cuda = torch.device(device).type == "cuda"
-    with torch.no_grad():
-        for _ in range(3):                      # warmup
-            block(x)
-        if is_cuda:
-            torch.cuda.synchronize()
-        t0 = time.perf_counter()
-        for _ in range(repeats):
-            block(x)
-        if is_cuda:
-            torch.cuda.synchronize()
-    return (time.perf_counter() - t0) / repeats * 1000.0   # ms/forward
+    try:
+        with torch.no_grad():
+            for _ in range(3):                  # warmup
+                block(x)
+            if is_cuda:
+                torch.cuda.synchronize()
+            t0 = time.perf_counter()
+            for _ in range(repeats):
+                block(x)
+            if is_cuda:
+                torch.cuda.synchronize()
+        return (time.perf_counter() - t0) / repeats * 1000.0   # ms/forward
+    except RuntimeError as e:
+        if "out of memory" in str(e).lower():
+            if is_cuda:
+                torch.cuda.empty_cache()
+            return float("nan")     # OOM -> cannot run at this length
+        raise
 
 
 def run_crossover(cfg, device: str | None = None,
-                  batch_size: int = 8) -> pd.DataFrame:
+                  batch_size: int = 4) -> pd.DataFrame:
     dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
     ge = cfg.model.gaze_encoder
     d, h, nf = ge.d_model, ge.n_heads, ge.performer_features

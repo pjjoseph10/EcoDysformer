@@ -151,7 +151,10 @@ train:
 # -----------------------------------------------------------------------------
 eval:
   cv:
-    outer_folds: 5                  # outer loop = performance estimate
+    outer_folds: 10                 # outer loop = performance estimate
+    #  10 (not 5): with 5 folds the paired Wilcoxon's min two-sided p is 0.0625,
+    #  so nothing reaches significance. 10 independent folds -> ~0.002 while folds
+    #  stay independent. ~7 test subj/fold, so lean on AUROC alongside accuracy.
     inner_folds: 3                  # inner loop = hyperparameter selection
     stratified: true                # stratify folds by class while grouping by subject
     group_key: subject_id           # a child's 3 passages NEVER split across folds
@@ -170,7 +173,9 @@ eval:
 # RQ1 sequence-length crossover: where (if anywhere) linear attention overtakes
 # quadratic on the RAW event stream. An honest negative on short seqs is expected.
 rq1_crossover:
-  seq_lengths: [3, 8, 16, 32, 64, 128, 256, 512]
+  # Extended past ETDD70's real event-stream lengths (~130-350 events/passage) to
+  # locate the empirical crossover where linear attention overtakes quadratic.
+  seq_lengths: [3, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
   repeats: 20
 
 # -----------------------------------------------------------------------------
