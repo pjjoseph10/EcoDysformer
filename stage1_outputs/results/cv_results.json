@@ -222,7 +222,7 @@
         7,
         7
       ],
-      "epoch_time_s_mean": 0.03704654812666679
+      "epoch_time_s_mean": 0.036717784641667396
     },
     "quadratic_conditioned": {
       "name": "quadratic_conditioned",
@@ -359,7 +359,7 @@
         7,
         7
       ],
-      "epoch_time_s_mean": 0.02658825195666547
+      "epoch_time_s_mean": 0.02617961817333404
     },
     "performer_blind": {
       "name": "performer_blind",
@@ -496,7 +496,7 @@
         7,
         7
       ],
-      "epoch_time_s_mean": 0.020461887786666466
+      "epoch_time_s_mean": 0.01938098248500107
     }
   },
   "comparisons": {
@@ -863,16 +863,16 @@
     "performer": {
       "param_count": 141121,
       "peak_gpu_mem_mb": 394.92578125,
-      "latency_ms_mean": 11.776338219979152,
-      "latency_ms_median": 11.676087000068947,
+      "latency_ms_mean": 11.059470219988725,
+      "latency_ms_median": 10.997563000273658,
       "n_batches": 50,
       "batch_size": 8
     },
     "quadratic": {
       "param_count": 141121,
       "peak_gpu_mem_mb": 394.92578125,
-      "latency_ms_mean": 7.401991659980922,
-      "latency_ms_median": 7.295208999948954,
+      "latency_ms_mean": 7.062389720049396,
+      "latency_ms_median": 6.935563999832084,
       "n_batches": 50,
       "batch_size": 8
     }

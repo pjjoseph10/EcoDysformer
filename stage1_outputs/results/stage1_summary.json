@@ -20,7 +20,7 @@
     },
     "crossover": {
       "status": "ok",
-      "crossover_seq_len": 2048
+      "crossover_seq_len": 1024
     },
     "explain": {
       "status": "ok",
@@ -35,6 +35,14 @@
     },
     "baselines": {
       "status": "ok"
+    },
+    "report": {
+      "status": "ok",
+      "results_md": "/kaggle/working/EcoDysformer/outputs/results/RESULTS.md",
+      "figures": {
+        "calibration": "/kaggle/working/EcoDysformer/outputs/figures/calibration_reliability.png",
+        "lime": "/kaggle/working/EcoDysformer/outputs/figures/lime_importance.png"
+      }
     }
   }
 }
