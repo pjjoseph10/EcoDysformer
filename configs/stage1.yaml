@@ -237,6 +237,13 @@ rq3:
   synthetic_sample:
     chars_per_sample: 30                 # K characters pooled into one "writing sample"
     seed_offset: 777
+    # How strongly the class-aligned draw skews the Reversal/Normal mix.
+    # p(Reversal char) = 0.5 + alpha * delta * (+1 dyslexic / -1 typical).
+    # delta=0.35 -> at alpha=1: dyslexic sample ~85% reversal chars, typical ~15%.
+    class_alignment_delta: 0.35
+    # Synthetic samples are drawn from the handwriting TEST pool (unseen by the
+    # classifier) so the reversal-rate is not inflated by memorized train images.
+    source_split: Test
   fusion:
     # Alignment strength of the NAIVE (flaw-reconstruction) handwriting feature:
     #   1.0 = fully class-aligned (manufactures the artifact)
