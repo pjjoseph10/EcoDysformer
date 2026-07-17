@@ -36,6 +36,7 @@ except Exception:
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif", ".webp"}
 META_EXTS = {".csv", ".json", ".txt", ".tsv", ".xlsx", ".xls", ".parquet"}
+ARCHIVE_EXTS = {".rar", ".zip", ".7z", ".tar", ".gz", ".tgz", ".bz2", ".xz"}
 # Column-name substrings that would indicate per-writer / per-subject linkage.
 LINKAGE_KEYWORDS = ("writer", "subject", "participant", "author", "user", "person",
                     "student", "child", "id", "name", "session")
@@ -56,6 +57,7 @@ def _walk(root: Path):
     ext_counter: Counter = Counter()
     image_paths: list[Path] = []
     meta_paths: list[Path] = []
+    archive_paths: list[Path] = []
     for p in root.rglob("*"):
         if p.is_dir():
             continue
@@ -70,7 +72,9 @@ def _walk(root: Path):
             image_paths.append(p)
         elif ext in META_EXTS:
             meta_paths.append(p)
-    return per_dir, ext_counter, image_paths, meta_paths
+        elif ext in ARCHIVE_EXTS:
+            archive_paths.append(p)
+    return per_dir, ext_counter, image_paths, meta_paths, archive_paths
 
 
 def _print_tree(per_dir: dict[str, int]) -> None:
@@ -142,6 +146,13 @@ def _filename_token_analysis(image_paths: list[Path], report: dict) -> None:
 
 
 def _verdict(report: dict) -> str:
+    # If the data is still packed in an archive, that is the real situation --
+    # don't mistake "can't see any images" for "no linkage".
+    if report.get("n_images", 0) == 0 and report.get("archive_files"):
+        arcs = ", ".join(Path(a).name for a in report["archive_files"])
+        return (f"DATA STILL ARCHIVED: found archive(s) [{arcs}] and no extracted "
+                f"images. Extract to /kaggle/working/ and re-run the inspector on "
+                f"the extracted folder before deciding anything.")
     has_link_col = any(m.get("linkage_columns") for m in report.get("metadata_files", []))
     if has_link_col:
         return ("LIKELY PRESENT: a metadata file has a writer/subject-like column. "
@@ -160,14 +171,21 @@ def inspect(root: Path) -> dict:
     assert root.exists(), f"handwriting root not found: {root}"
     report: dict = {"root": str(root)}
 
-    per_dir, ext_counter, image_paths, meta_paths = _walk(root)
+    per_dir, ext_counter, image_paths, meta_paths, archive_paths = _walk(root)
     report["n_images"] = len(image_paths)
     report["n_metadata_files"] = len(meta_paths)
+    report["archive_files"] = [str(a) for a in archive_paths]
     report["extensions"] = dict(ext_counter)
     report["n_directories"] = len(per_dir)
 
     _rule("DIRECTORY TREE (files per directory)")
     _print_tree(per_dir)
+
+    if archive_paths:
+        _rule("ARCHIVES (must be extracted before the real data is visible)")
+        for a in archive_paths:
+            size_mb = a.stat().st_size / (1024 ** 2)
+            print(f"  {size_mb:8.1f} MB  {a.relative_to(root)}")
 
     _rule("FILE EXTENSIONS")
     for ext, c in ext_counter.most_common():
