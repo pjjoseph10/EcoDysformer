@@ -205,3 +205,42 @@ baselines_published:
   - name: "CatBoost / XGBoost"
     accuracy: 0.82
     note: "approximate range 0.80-0.83; different validation protocol"
+
+# =============================================================================
+# RQ3 (STAGE 2) -- handwriting auxiliary branch + naive-vs-honest fusion.
+#
+# The handwriting cohort is DISJOINT from ETDD70: no shared subjects, and no
+# per-writer linkage even within itself (labels are per character-image:
+# Normal / Reversal / Corrected, 28x28). So any handwriting feature attached to
+# an ETDD70 child carries NO genuine per-child information -- which is exactly
+# the flaw RQ3 exposes. The "naive, class-aligned" arm DELIBERATELY reconstructs
+# that flaw; it is a negative example, never a proposed method.
+# =============================================================================
+rq3:
+  handwriting:
+    # Extracted dataset root (contains Train/ and Test/ with the 3 label folders).
+    data_root: /kaggle/working/hw_data/Gambo
+    classes: {Normal: 0, Reversal: 1}   # primary signal: binary reversal-vs-normal
+    include_corrected: false            # if true, adds a 3rd class (handled separately)
+    image_size: 28
+    grayscale: true
+    max_images_per_class: null          # e.g. 20000 to subsample for a fast run
+    encoder:
+      channels: [16, 32]                # lightweight CNN (NOT LeViT; 28x28 is tiny)
+      embed_dim: 64
+      dropout: 0.1
+    train:
+      epochs: 5
+      batch_size: 256
+      lr: 0.001
+      num_workers: 2
+  synthetic_sample:
+    chars_per_sample: 30                 # K characters pooled into one "writing sample"
+    seed_offset: 777
+  fusion:
+    # Alignment strength of the NAIVE (flaw-reconstruction) handwriting feature:
+    #   1.0 = fully class-aligned (manufactures the artifact)
+    #   0.0 = random (honest control that proves the gain is artifact)
+    alignment_alpha_naive: 1.0
+    alignment_alpha_honest: 0.0
+    calibration: isotonic                # isotonic | platt (for honest late fusion)
