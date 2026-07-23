@@ -137,6 +137,8 @@ def build_risk_features(cfg, model, subjects: np.ndarray, child_classes: np.ndar
 def save_risk_features(cfg, df: pd.DataFrame) -> Path:
     out = Path(cfg.paths.features_dir)
     out.mkdir(parents=True, exist_ok=True)
+    res_dir = Path(cfg.paths.results_dir)
+    res_dir.mkdir(parents=True, exist_ok=True)
     path = out / "rq3_handwriting_risk.csv"
     df.to_csv(path, index=False)
 
@@ -150,7 +152,7 @@ def save_risk_features(cfg, df: pd.DataFrame) -> Path:
     summary["note"] = ("aligned = DELIBERATE flaw reconstruction (class-leaking); "
                        "random = honest, uninformative. A large |r| for 'aligned' and "
                        "~0 for 'random' is the expected, intended contrast.")
-    with open(Path(cfg.paths.results_dir) / "rq3_risk_feature_summary.json", "w",
+    with open(res_dir / "rq3_risk_feature_summary.json", "w",
               encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2)
     return path

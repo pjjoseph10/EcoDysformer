@@ -1,0 +1,22 @@
+# Kaggle-only requirements.
+#
+# USE THIS FILE ON KAGGLE -- NOT requirements.txt.
+#
+# The Kaggle base image already ships compatible numpy, pandas, scipy,
+# scikit-learn, torch, lightgbm, matplotlib, tqdm, transformers and PyYAML.
+# Installing the pinned versions in requirements.txt on top of that DOWNGRADES
+# numpy/pandas/torch and breaks the image with:
+#     ValueError: numpy.dtype size changed, may indicate binary incompatibility
+# So only the genuinely-missing packages are listed here, unpinned, to let pip
+# resolve against whatever the current Kaggle image provides.
+#
+#   pip install -q -r requirements-kaggle.txt
+#
+# NOTE: Stage 2 (RQ3 handwriting / fusion) needs NONE of these -- it only uses
+# torch, numpy, pandas, scikit-learn, lightgbm and Pillow, all preinstalled.
+# These are required only for the Stage-1 linguistic features and LIME.
+
+stanza          # Czech NLP pipeline (dependency depth, POS)
+wordfreq        # Czech Zipf frequency table
+lime            # pre-fusion explainability
+tabulate        # markdown tables in the baseline comparison

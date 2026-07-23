@@ -1,9 +1,11 @@
-# Eco-Dysformer v2 -- Stage 1 pinned dependencies.
+# Eco-Dysformer v2 -- pinned REFERENCE environment (for local venvs / archival
+# reproducibility). It records the exact versions the study was developed against.
 #
-# This set is pinned for reproducibility and is tested against the Kaggle
-# P100/T4 base image (Python 3.10/3.11), which is the documented GPU target.
-# On Kaggle, torch / numpy / pandas / scikit-learn / lightgbm are already
-# preinstalled at compatible versions; the pins below are the reference env.
+# !!! DO NOT `pip install -r requirements.txt` ON KAGGLE !!!
+# The Kaggle image ships newer numpy/pandas/torch. Installing these pins on top
+# downgrades them and breaks the image with:
+#     ValueError: numpy.dtype size changed, may indicate binary incompatibility
+# On Kaggle use `requirements-kaggle.txt` instead (only the missing packages).
 #
 # Enable "Internet" in the Kaggle notebook: stanza, udpipe, transformers, and
 # wordfreq download models/tables on first use.
