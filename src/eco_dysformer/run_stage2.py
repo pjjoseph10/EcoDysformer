@@ -94,11 +94,15 @@ def main() -> int:
 
     # 1. handwriting classifier -------------------------------------------------
     _banner("1/3 handwriting reversal classifier (disjoint cohort)")
-    if args.skip_handwriting_train:
+    ckpt = Path(cfg.paths.results_dir) / "rq3_handwriting_cnn.pt"
+    if args.skip_handwriting_train and ckpt.is_file():
         model = _load_handwriting_model(cfg)
         print("  reused saved checkpoint")
         summary["stages"]["handwriting"] = {"status": "reused"}
     else:
+        if args.skip_handwriting_train:
+            print(f"  --skip-handwriting-train set but {ckpt.name} not found "
+                  "(fresh session / ephemeral /kaggle/working) -> training instead.")
         from eco_dysformer.handwriting.train import train_handwriting
         model, hw_res = train_handwriting(cfg, cfg.seed)
         print("  test metrics:", hw_res["test_metrics"])
