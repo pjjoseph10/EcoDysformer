@@ -251,3 +251,8 @@ rq3:
     alignment_alpha_naive: 1.0
     alignment_alpha_honest: 0.0
     calibration: isotonic                # isotonic | platt (for honest late fusion)
+  sweep:
+    # Dose-response: how the manufactured artifact scales with alignment strength.
+    # Each delta re-mixes the synthetic writing sample (delta*sign shifts the
+    # Reversal/Normal ratio); 0.0 -> uninformative, 0.35 -> near-perfect leak.
+    deltas: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.35]

@@ -22,7 +22,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import warnings
 from pathlib import Path
+
+# LightGBM's sklearn wrapper sets feature names even for plain arrays, so newer
+# scikit-learn emits a spurious "X does not have valid feature names" warning on
+# every predict. We pass numpy in identical column order at fit and predict, so
+# predictions are unaffected -- silence the noise, not a real problem.
+warnings.filterwarnings("ignore", message=".*does not have valid feature names.*")
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -77,6 +84,8 @@ def main() -> int:
     ap.add_argument("--config", default=None)
     ap.add_argument("--skip-handwriting-train", action="store_true",
                     help="reuse the saved rq3_handwriting_cnn.pt")
+    ap.add_argument("--sweep", action="store_true",
+                    help="also run the alignment-strength dose-response sweep")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -128,6 +137,14 @@ def main() -> int:
     print(f"    ECE cost         (naive_aligned - honest_aligned): "
           f"{h['naive_vs_honest_ece']['paired_diff_ci']['mean_diff']:+.3f}")
     summary["stages"]["rq3"] = {"status": "ok", **info}
+
+    # 4. (optional) alignment-strength dose-response sweep ----------------------
+    if args.sweep:
+        _banner("4/4 RQ3 alignment-strength sweep (dose-response)")
+        from eco_dysformer.eval.run_rq3 import run_alignment_sweep, save_alignment_sweep
+        sweep_df = run_alignment_sweep(cfg, arrays, model)
+        sinfo = save_alignment_sweep(cfg, sweep_df)
+        summary["stages"]["rq3_sweep"] = {"status": "ok", **sinfo}
 
     out = Path(cfg.paths.results_dir) / "stage2_summary.json"
     out.parent.mkdir(parents=True, exist_ok=True)

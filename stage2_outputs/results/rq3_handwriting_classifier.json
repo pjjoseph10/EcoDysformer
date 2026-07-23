@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "class_map": {
+      "Normal": 0,
+      "Reversal": 1
+    },
+    "n_classes": 2,
+    "n_train": 86115,
+    "n_test": 37439,
+    "in_channels": 1
+  },
+  "test_metrics": {
+    "accuracy": 0.8570207537594488,
+    "f1": 0.8358529330593971,
+    "auroc": 0.9399109753126598,
+    "brier": 0.12285320755001228,
+    "ece": 0.11132661557994807,
+    "n": 37439,
+    "n_pos": 17882
+  },
+  "param_count": 105442,
+  "mean_epoch_time_s": 11.197619031399972,
+  "inference_latency_ms_per_batch": 1.410348850004084,
+  "batch_size": 256,
+  "note": "Handwriting-domain result on a DISJOINT cohort. Reversal vs Normal character classification; not a subject-level diagnosis."
+}

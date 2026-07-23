@@ -1,0 +1,13 @@
+{
+  "reversal_rate_aligned": {
+    "mean_dyslexic": 0.6526602566242218,
+    "mean_typical": 0.15702607493315424,
+    "point_biserial_r": 0.9560000255284453
+  },
+  "reversal_rate_random": {
+    "mean_dyslexic": 0.4076791397162846,
+    "mean_typical": 0.41150908512728557,
+    "point_biserial_r": -0.02416403110364432
+  },
+  "note": "aligned = DELIBERATE flaw reconstruction (class-leaking); random = honest, uninformative. A large |r| for 'aligned' and ~0 for 'random' is the expected, intended contrast."
+}

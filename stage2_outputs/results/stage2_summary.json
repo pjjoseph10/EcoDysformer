@@ -1,0 +1,19 @@
+{
+  "seed": 1337,
+  "stages": {
+    "handwriting": {
+      "status": "ok",
+      "test_accuracy": 0.8570207537594488,
+      "param_count": 105442
+    },
+    "risk_feature": {
+      "status": "ok",
+      "csv": "/kaggle/working/EcoDysformer/outputs/features/rq3_handwriting_risk.csv"
+    },
+    "rq3": {
+      "status": "ok",
+      "json": "/kaggle/working/EcoDysformer/outputs/results/rq3_results.json",
+      "summary": "/kaggle/working/EcoDysformer/outputs/results/rq3_summary.csv"
+    }
+  }
+}

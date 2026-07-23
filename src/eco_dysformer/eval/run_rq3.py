@@ -200,6 +200,80 @@ def run_rq3(cfg, arrays: ChildArrays) -> dict:
     return results
 
 
+def run_alignment_sweep(cfg, arrays: ChildArrays, model) -> pd.DataFrame:
+    """Dose-response: naive & honest accuracy/ECE vs alignment strength (delta).
+
+    The image pool is scored ONCE; each delta only re-mixes the synthetic
+    writing-sample draw, so this is far cheaper than re-scoring per delta. The
+    reference arms (gaze_only, and the honest random control) are delta-free.
+    """
+    from eco_dysformer.handwriting.risk_feature import assign_reversal_rates, score_pool
+
+    device = resolve_device(cfg)
+    seed = cfg.seed
+    folds = nested_cv(arrays.subjects, arrays.y, outer=cfg.eval.cv.outer_folds,
+                      inner=cfg.eval.cv.inner_folds, seed=seed)
+    assert_no_subject_leakage(folds, arrays.subjects)
+
+    rev_probs, is_rev = score_pool(cfg, model, seed, device)
+    ss = cfg.rq3.synthetic_sample
+
+    gaze = arm_gaze_only(arrays, folds, cfg, device, seed)
+    rows = [{"delta": None, "r_with_class": 0.0, "arm": "gaze_only",
+             "accuracy": gaze["accuracy_mean"], "ece": gaze["ece_mean"],
+             "auroc": gaze["auroc_mean"]}]
+
+    for delta in cfg.rq3.sweep.deltas:
+        rng = np.random.default_rng(seed + ss.seed_offset + int(round(delta * 1000)))
+        feat = assign_reversal_rates(
+            rev_probs, is_rev, arrays.y, chars_per_sample=ss.chars_per_sample,
+            alpha=1.0, delta=float(delta), rng=rng).reshape(-1, 1)
+        r = float(np.corrcoef(feat.ravel(), arrays.y)[0, 1])
+        na = arm_naive(arrays, feat, folds, cfg, device, seed, f"naive_d{delta}")
+        ho = arm_honest(arrays, feat, folds, cfg, device, seed, f"honest_d{delta}")
+        for arm, res in (("naive", na), ("honest", ho)):
+            rows.append({"delta": float(delta), "r_with_class": r, "arm": arm,
+                         "accuracy": res["accuracy_mean"], "ece": res["ece_mean"],
+                         "auroc": res["auroc_mean"]})
+        print(f"  delta={delta:.2f}  r={r:+.3f}  "
+              f"naive acc={na['accuracy_mean']:.3f}/ece={na['ece_mean']:.3f}  "
+              f"honest acc={ho['accuracy_mean']:.3f}/ece={ho['ece_mean']:.3f}")
+    return pd.DataFrame(rows)
+
+
+def save_alignment_sweep(cfg, df: pd.DataFrame) -> dict:
+    res_dir = Path(cfg.paths.results_dir)
+    fig_dir = Path(cfg.paths.figures_dir)
+    res_dir.mkdir(parents=True, exist_ok=True)
+    fig_dir.mkdir(parents=True, exist_ok=True)
+    df.to_csv(res_dir / "rq3_alignment_sweep.csv", index=False)
+
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        sweep = df[df["delta"].notna()]
+        gaze_acc = float(df[df["arm"] == "gaze_only"]["accuracy"].iloc[0])
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.2))
+        for arm, color in (("naive", "#E45756"), ("honest", "#4C78A8")):
+            d = sweep[sweep["arm"] == arm]
+            ax1.plot(d["r_with_class"], d["accuracy"], "o-", color=color, label=arm)
+            ax2.plot(d["r_with_class"], d["ece"], "o-", color=color, label=arm)
+        ax1.axhline(gaze_acc, ls="--", color="grey", label="gaze-only")
+        ax1.set_xlabel("feature-class alignment r"); ax1.set_ylabel("accuracy")
+        ax1.set_title("Manufactured accuracy vs alignment"); ax1.legend(); ax1.grid(alpha=.3)
+        ax2.set_xlabel("feature-class alignment r"); ax2.set_ylabel("ECE")
+        ax2.set_title("Calibration vs alignment"); ax2.legend(); ax2.grid(alpha=.3)
+        fig.suptitle("RQ3 dose-response: disjoint-cohort artifact vs alignment strength")
+        fig.tight_layout()
+        fig.savefig(fig_dir / "rq3_alignment_sweep.png", dpi=120)
+        plt.close(fig)
+    except ImportError:
+        pass
+    return {"csv": str(res_dir / "rq3_alignment_sweep.csv")}
+
+
 def save_rq3(cfg, results: dict) -> dict:
     res_dir = Path(cfg.paths.results_dir)
     res_dir.mkdir(parents=True, exist_ok=True)

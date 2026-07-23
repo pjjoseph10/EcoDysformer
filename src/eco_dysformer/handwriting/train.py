@@ -62,7 +62,7 @@ def train_handwriting(cfg, seed: int, device=None) -> dict:
             loss = loss_fn(model(x), y)
             loss.backward()
             opt.step()
-            running += float(loss) * len(y)
+            running += loss.item() * len(y)
         dt = time.perf_counter() - t0
         epoch_times.append(dt)
         print(f"  epoch {ep+1}/{epochs}  loss={running/meta['n_train']:.4f}  {dt:.1f}s")
